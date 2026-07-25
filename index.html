@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bake w Me</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- HOME SCREEN -->
+  <div id="home-screen" class="screen active">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <div class="nav-logo">Bake w Me</div>
+      <ul class="nav-links">
+        <li><a href="#" onclick="goHome(); return false;">Home</a></li>
+        <li><a href="#recipes-section">Recipes</a></li>
+        <li><a href="#">About Us</a></li>
+      </ul>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero-image-wrap">
+        <!-- Replace this src with your own hero image -->
+        <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=600&q=80" alt="Featured bake" class="hero-img" />
+      </div>
+      <div class="hero-text">
+        <h1 class="hero-title">Bake something beautiful, one step at a time.</h1>
+        <p class="hero-sub">No more scrolling through long recipe pages. We guide you through every step — ingredients, timers, tips and all.</p>
+        <a href="#recipes-section" class="btn-hero">Browse Recipes</a>
+      </div>
+    </section>
+
+    <!-- Recipes Section -->
+    <section class="recipes-section" id="recipes-section">
+      <h2 class="recipes-heading">Recipes</h2>
+      <div class="recipe-grid" id="recipe-cards"></div>
+    </section>
+
+  </div>
+
+  <!-- RECIPE SCREEN -->
+  <div id="recipe-screen" class="screen">
+    <nav class="recipe-nav">
+      <button class="btn-back" onclick="goHome()">← Back</button>
+      <span class="recipe-nav-title" id="nav-title"></span>
+      <span class="step-counter" id="step-counter"></span>
+    </nav>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+
+    <main class="step-container">
+
+      <div class="step-header">
+        <span class="step-label" id="step-label"></span>
+        <h1 class="step-title" id="step-title"></h1>
+      </div>
+
+      <div class="ingredients-panel" id="ingredients-panel">
+        <h3 class="panel-heading">You'll need</h3>
+        <ul class="ingredient-list" id="ingredient-list"></ul>
+      </div>
+
+      <p class="step-instruction" id="step-instruction"></p>
+
+      <div class="tip-box" id="tip-box">
+        <span class="tip-icon">💡</span>
+        <div>
+          <strong>Beginner Tip</strong>
+          <p id="tip-text"></p>
+        </div>
+      </div>
+
+      <div class="troubleshoot-box" id="troubleshoot-box">
+        <span class="tip-icon">🔍</span>
+        <div>
+          <strong>Troubleshoot</strong>
+          <p id="troubleshoot-text"></p>
+        </div>
+      </div>
+
+      <div class="timer-box" id="timer-box">
+        <div class="timer-display" id="timer-display">0:00</div>
+        <div class="timer-controls">
+          <button class="btn-timer" id="timer-btn" onclick="toggleTimer()">Start Timer</button>
+          <button class="btn-timer-reset" onclick="resetTimer()">Reset</button>
+        </div>
+      </div>
+
+    </main>
+
+    <footer class="step-footer">
+      <button class="btn-prev" id="btn-prev" onclick="prevStep()">← Prev</button>
+      <button class="btn-next" id="btn-next" onclick="nextStep()">Next →</button>
+      <button class="btn-finish" id="btn-finish" onclick="goHome()" style="display:none">🎉 Done! Back to Recipes</button>
+    </footer>
+  </div>
+
+  <script type="module" src="firebase.js"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>

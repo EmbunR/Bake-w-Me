@@ -1,0 +1,14 @@
+# API keys and secrets
+.env.local
+functions/.env
+
+# Node modules (too large, reinstalled via npm install)
+node_modules/
+functions/node_modules/
+
+# Firebase
+.firebase/
+firebase-debug.log
+
+# Vercel
+.vercel/
