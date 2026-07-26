@@ -18,13 +18,7 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `You are a friendly baking assistant for a website called Bake w Me.
-You help beginner bakers following a recipe step by step.
-The user is currently making: ${recipeName}.
-They are on this step: "${stepTitle}".
-The step instruction is: "${stepInstruction}".
-Only answer baking related questions. Keep answers short, warm, and beginner-friendly.
-If they ask something unrelated to baking, politely redirect them back to the recipe.`
+            content: `You are a friendly baking assistant for a website called Bake w Me. The user is making: ${recipeName}. Current step: "${stepTitle}". Instruction: "${stepInstruction}". Keep answers short and beginner-friendly.`
           },
           { role: "user", content: message }
         ]
@@ -32,11 +26,20 @@ If they ask something unrelated to baking, politely redirect them back to the re
     });
 
     const data = await response.json();
+
+    // Log full response to terminal so we can debug
+    console.log("Status:", response.status);
+    console.log("Data:", JSON.stringify(data));
+
+    if (!response.ok) {
+      return res.status(500).json({ error: data.error?.message || "OpenAI error" });
+    }
+
     const reply = data.choices[0].message.content;
     res.status(200).json({ reply });
 
   } catch (err) {
-    console.error(err);
+    console.error("Catch error:", err);
     res.status(500).json({ error: "Something went wrong" });
   }
 }

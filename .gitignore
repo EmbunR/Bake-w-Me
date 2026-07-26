@@ -73,3 +73,5 @@ seed.html
 recipes.js
 api/.env.local
 .env.local
+.vercel
+.env*
