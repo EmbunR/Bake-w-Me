@@ -1,13 +1,30 @@
-import { getAllRecipes, getRecipeById } from "./firebase.js";
+import { getAllRecipes, getRecipeById, signUp, logIn, logOut, onAuthChange, saveRecipe } from "./firebase.js";
 
 // ─── State ───────────────────────────────────────────────────────────────────
 let currentRecipe = null;
 let currentStepIndex = 0;
+let currentUser = null;
+let authMode = "login";
+let stepCount = 0;
 
 // Timer state
 let timerInterval = null;
 let timerSecondsLeft = 0;
 let timerRunning = false;
+
+// ─── Auth State ───────────────────────────────────────────────────────────────
+onAuthChange((user) => {
+  currentUser = user;
+  if (user) {
+    document.getElementById("nav-login").style.display = "none";
+    document.getElementById("nav-logout").style.display = "inline";
+    document.getElementById("nav-add").style.display = "inline";
+  } else {
+    document.getElementById("nav-login").style.display = "inline";
+    document.getElementById("nav-logout").style.display = "none";
+    document.getElementById("nav-add").style.display = "none";
+  }
+});
 
 // ─── Home Screen ─────────────────────────────────────────────────────────────
 async function renderHomeScreen() {
@@ -49,7 +66,6 @@ async function renderHomeScreen() {
 // ─── Navigation ──────────────────────────────────────────────────────────────
 async function startRecipe(recipeId) {
   currentRecipe = await getRecipeById(recipeId);
-  // Firestore sometimes returns arrays as objects — this converts it back
   if (currentRecipe.steps && !Array.isArray(currentRecipe.steps)) {
     currentRecipe.steps = Object.values(currentRecipe.steps);
   }
@@ -63,6 +79,7 @@ function goHome() {
   clearTimerState();
   currentRecipe = null;
   showScreen("home-screen");
+  renderHomeScreen();
 }
 
 function nextStep() {
@@ -99,20 +116,16 @@ function renderStep() {
   const isLast = currentStepIndex === totalSteps - 1;
   const isFirst = currentStepIndex === 0;
 
-  // Nav
   document.getElementById("nav-title").textContent = currentRecipe.name;
   document.getElementById("step-counter").textContent = `${currentStepIndex + 1} / ${totalSteps}`;
 
-  // Progress bar
   const pct = ((currentStepIndex + 1) / totalSteps) * 100;
   document.getElementById("progress-bar").style.width = pct + "%";
 
-  // Step content
   document.getElementById("step-label").textContent = step.label;
   document.getElementById("step-title").textContent = step.title;
   document.getElementById("step-instruction").textContent = step.instruction;
 
-  // Ingredients
   const panel = document.getElementById("ingredients-panel");
   const list = document.getElementById("ingredient-list");
   if (step.ingredients && step.ingredients.length > 0) {
@@ -124,7 +137,6 @@ function renderStep() {
     panel.style.display = "none";
   }
 
-  // Tip
   const tipBox = document.getElementById("tip-box");
   const tipText = document.getElementById("tip-text");
   if (step.tip) {
@@ -134,7 +146,6 @@ function renderStep() {
     tipBox.style.display = "none";
   }
 
-  // Troubleshoot
   const tsBox = document.getElementById("troubleshoot-box");
   const tsText = document.getElementById("troubleshoot-text");
   if (step.troubleshoot) {
@@ -144,7 +155,6 @@ function renderStep() {
     tsBox.style.display = "none";
   }
 
-  // Timer
   const timerBox = document.getElementById("timer-box");
   if (step.timer) {
     timerSecondsLeft = step.timer;
@@ -155,7 +165,6 @@ function renderStep() {
     timerBox.style.display = "none";
   }
 
-  // Footer buttons
   document.getElementById("btn-prev").style.display = isFirst ? "none" : "inline-flex";
   document.getElementById("btn-next").style.display = isLast ? "none" : "inline-flex";
   document.getElementById("btn-finish").style.display = isLast ? "inline-flex" : "none";
@@ -217,12 +226,184 @@ function updateTimerDisplay() {
     `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
+// ─── Auth Screen ──────────────────────────────────────────────────────────────
+function showAuthScreen() {
+  showScreen("auth-screen");
+}
+
+function toggleAuthMode() {
+  authMode = authMode === "login" ? "signup" : "login";
+  document.getElementById("auth-title").textContent = authMode === "login" ? "Welcome back" : "Create an account";
+  document.getElementById("auth-sub").textContent = authMode === "login"
+    ? "Log in to save and share your recipes"
+    : "Sign up to start adding your own recipes";
+  document.getElementById("auth-error").textContent = "";
+  document.querySelector(".btn-auth").textContent = authMode === "login" ? "Log In" : "Sign Up";
+  document.querySelector(".auth-switch").innerHTML = authMode === "login"
+    ? `Don't have an account? <a href="#" onclick="toggleAuthMode(); return false;">Sign up</a>`
+    : `Already have an account? <a href="#" onclick="toggleAuthMode(); return false;">Log in</a>`;
+}
+
+async function handleAuth() {
+  const email = document.getElementById("auth-email").value.trim();
+  const password = document.getElementById("auth-password").value;
+  const errorEl = document.getElementById("auth-error");
+  errorEl.textContent = "";
+
+  if (!email || !password) {
+    errorEl.textContent = "Please fill in both fields.";
+    return;
+  }
+
+  try {
+    if (authMode === "login") {
+      await logIn(email, password);
+    } else {
+      await signUp(email, password);
+    }
+    goHome();
+  } catch (err) {
+    if (err.code === "auth/invalid-credential") errorEl.textContent = "Wrong email or password.";
+    else if (err.code === "auth/email-already-in-use") errorEl.textContent = "An account with this email already exists.";
+    else if (err.code === "auth/weak-password") errorEl.textContent = "Password must be at least 6 characters.";
+    else if (err.code === "auth/invalid-email") errorEl.textContent = "Please enter a valid email address.";
+    else errorEl.textContent = "Something went wrong. Try again.";
+  }
+}
+
+async function handleLogout() {
+  await logOut();
+  goHome();
+}
+
+// ─── Add Recipe Screen ────────────────────────────────────────────────────────
+function showAddRecipe() {
+  if (!currentUser) {
+    showAuthScreen();
+    return;
+  }
+  stepCount = 0;
+  document.getElementById("steps-container").innerHTML = "";
+  document.getElementById("r-name").value = "";
+  document.getElementById("r-emoji").value = "";
+  document.getElementById("r-time").value = "";
+  document.getElementById("r-description").value = "";
+  document.getElementById("save-status").textContent = "";
+  showScreen("add-recipe-screen");
+  addStep();
+}
+
+function addStep() {
+  stepCount++;
+  const container = document.getElementById("steps-container");
+  const stepEl = document.createElement("div");
+  stepEl.className = "step-form-block";
+  stepEl.id = `step-block-${stepCount}`;
+  stepEl.innerHTML = `
+    <div class="step-form-header">
+      <span class="step-form-num">Step ${stepCount}</span>
+      <button class="btn-remove-step" onclick="removeStep(${stepCount})">Remove</button>
+    </div>
+    <input type="text" placeholder="Step title (e.g. Brown the Butter)" class="form-input" id="s${stepCount}-title" />
+    <input type="text" placeholder="Label (e.g. Step 1, Prep, Final)" class="form-input" id="s${stepCount}-label" />
+    <textarea placeholder="Step instruction — what should the user do?" class="form-input form-textarea" id="s${stepCount}-instruction"></textarea>
+    <textarea placeholder="Ingredients for this step (one per line, e.g. 115g unsalted butter)" class="form-input form-textarea-sm" id="s${stepCount}-ingredients"></textarea>
+    <input type="text" placeholder="Beginner tip (optional)" class="form-input" id="s${stepCount}-tip" />
+    <input type="text" placeholder="Troubleshoot tip (optional)" class="form-input" id="s${stepCount}-troubleshoot" />
+    <input type="number" placeholder="Timer in minutes (optional, e.g. 5)" class="form-input" id="s${stepCount}-timer" />
+  `;
+  container.appendChild(stepEl);
+}
+
+function removeStep(num) {
+  const el = document.getElementById(`step-block-${num}`);
+  if (el) el.remove();
+}
+
+async function submitRecipe() {
+  if (!currentUser) {
+    showAuthScreen();
+    return;
+  }
+
+  const name = document.getElementById("r-name").value.trim();
+  const emoji = document.getElementById("r-emoji").value.trim();
+  const time = document.getElementById("r-time").value.trim();
+  const difficulty = document.getElementById("r-difficulty").value;
+  const description = document.getElementById("r-description").value.trim();
+  const statusEl = document.getElementById("save-status");
+
+  if (!name || !emoji || !time) {
+    statusEl.textContent = "Please fill in the recipe name, emoji, and time.";
+    statusEl.style.color = "#c0392b";
+    return;
+  }
+
+  const steps = [];
+  const stepBlocks = document.querySelectorAll(".step-form-block");
+
+  stepBlocks.forEach((block) => {
+    const num = block.id.replace("step-block-", "");
+    const title = document.getElementById(`s${num}-title`).value.trim();
+    const label = document.getElementById(`s${num}-label`).value.trim();
+    const instruction = document.getElementById(`s${num}-instruction`).value.trim();
+    const ingredientRaw = document.getElementById(`s${num}-ingredients`).value.trim();
+    const tip = document.getElementById(`s${num}-tip`).value.trim();
+    const troubleshoot = document.getElementById(`s${num}-troubleshoot`).value.trim();
+    const timerMins = document.getElementById(`s${num}-timer`).value;
+
+    const ingredients = ingredientRaw
+      ? ingredientRaw.split("\n").map((line) => {
+          const parts = line.trim().split(" ");
+          return { amount: parts[0], name: parts.slice(1).join(" ") };
+        }).filter(i => i.name)
+      : [];
+
+    steps.push({
+      title: title || `Step ${num}`,
+      label: label || `Step ${num}`,
+      instruction,
+      ingredients,
+      tip: tip || null,
+      troubleshoot: troubleshoot || null,
+      timer: timerMins ? parseInt(timerMins) * 60 : null,
+    });
+  });
+
+  if (steps.length === 0) {
+    statusEl.textContent = "Please add at least one step.";
+    statusEl.style.color = "#c0392b";
+    return;
+  }
+
+  try {
+    statusEl.textContent = "Saving...";
+    statusEl.style.color = "var(--pink-dark)";
+    await saveRecipe({ name, emoji, time, difficulty, description, steps }, currentUser.uid);
+    statusEl.textContent = "✅ Recipe saved!";
+    statusEl.style.color = "var(--sage)";
+    setTimeout(() => goHome(), 1500);
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "Something went wrong. Try again.";
+    statusEl.style.color = "#c0392b";
+  }
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderHomeScreen();
 
-// Expose functions to HTML onclick handlers
+// ─── Expose to HTML ───────────────────────────────────────────────────────────
 window.nextStep = nextStep;
 window.prevStep = prevStep;
 window.goHome = goHome;
 window.toggleTimer = toggleTimer;
 window.resetTimer = resetTimer;
+window.showAuthScreen = showAuthScreen;
+window.toggleAuthMode = toggleAuthMode;
+window.handleAuth = handleAuth;
+window.handleLogout = handleLogout;
+window.showAddRecipe = showAddRecipe;
+window.addStep = addStep;
+window.removeStep = removeStep;
+window.submitRecipe = submitRecipe;
