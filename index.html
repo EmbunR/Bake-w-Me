@@ -95,6 +95,20 @@
           <button class="btn-timer-reset" onclick="resetTimer()">Reset</button>
         </div>
       </div>
+      
+      <!-- AI Chat -->
+      <div class="chat-wrap" id="chat-wrap">
+        <button class="chat-toggle" id="chat-toggle" onclick="toggleChat()">
+          💬 Ask Baking Assistant
+        </button>
+        <div class="chat-box" id="chat-box" style="display:none">
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" class="chat-input" placeholder="Ask something about this step..." />
+            <button class="chat-send" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
 
     </main>
 

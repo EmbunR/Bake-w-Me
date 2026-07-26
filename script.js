@@ -390,6 +390,65 @@ async function submitRecipe() {
   }
 }
 
+// ─── Chat ────────────────────────────────────────────────────────────────────
+function toggleChat() {
+  const box = document.getElementById("chat-box");
+  const btn = document.getElementById("chat-toggle");
+  const isHidden = box.style.display === "none";
+  box.style.display = isHidden ? "flex" : "none";
+  box.style.flexDirection = "column";
+  btn.textContent = isHidden ? "💬 Close Assistant" : "💬 Ask Baking Assistant";
+}
+
+async function sendMessage() {
+  const input = document.getElementById("chat-input");
+  const messages = document.getElementById("chat-messages");
+  const message = input.value.trim();
+  if (!message) return;
+
+  const step = currentRecipe.steps[currentStepIndex];
+
+  // Show user bubble
+  messages.innerHTML += `<div class="chat-bubble user">${message}</div>`;
+  input.value = "";
+
+  // Show thinking bubble
+  const thinkingId = "thinking-" + Date.now();
+  messages.innerHTML += `<div class="chat-bubble thinking" id="${thinkingId}">Thinking...</div>`;
+  messages.scrollTop = messages.scrollHeight;
+
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        recipeName: currentRecipe.name,
+        stepTitle: step.title,
+        stepInstruction: step.instruction
+      })
+    });
+
+    const data = await response.json();
+    document.getElementById(thinkingId).remove();
+    messages.innerHTML += `<div class="chat-bubble assistant">${data.reply}</div>`;
+    messages.scrollTop = messages.scrollHeight;
+
+  } catch (err) {
+    document.getElementById(thinkingId).remove();
+    messages.innerHTML += `<div class="chat-bubble assistant">Sorry, something went wrong. Try again!</div>`;
+  }
+}
+
+// Allow Enter key to send
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("chat-input");
+  if (input) {
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+  }
+});
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderHomeScreen();
 
@@ -407,3 +466,5 @@ window.showAddRecipe = showAddRecipe;
 window.addStep = addStep;
 window.removeStep = removeStep;
 window.submitRecipe = submitRecipe;
+window.toggleChat = toggleChat;
+window.sendMessage = sendMessage;
