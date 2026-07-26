@@ -431,7 +431,11 @@ async function sendMessage() {
 
     const data = await response.json();
     document.getElementById(thinkingId).remove();
-    messages.innerHTML += `<div class="chat-bubble assistant">${data.reply}</div>`;
+    if (data.reply) {
+      messages.innerHTML += `<div class="chat-bubble assistant">${data.reply}</div>`;
+    } else {
+      messages.innerHTML += `<div class="chat-bubble assistant">I'm getting too many requests right now — try again in a moment! 🍞</div>`;
+    }
     messages.scrollTop = messages.scrollHeight;
 
   } catch (err) {
