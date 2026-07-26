@@ -95,7 +95,7 @@
           <button class="btn-timer-reset" onclick="resetTimer()">Reset</button>
         </div>
       </div>
-      
+
       <!-- AI Chat -->
       <div class="chat-wrap" id="chat-wrap">
         <button class="chat-toggle" id="chat-toggle" onclick="toggleChat()">
@@ -153,7 +153,13 @@
     <div class="form-section">
       <h3 class="form-section-title">Basic Info</h3>
       <input type="text" id="r-name" placeholder="Recipe name" class="form-input" />
-      <input type="text" id="r-emoji" placeholder="Emoji (e.g. 🍰)" class="form-input" />
+      <div class="image-upload-wrap">
+        <input type="file" id="r-image" accept="image/*" class="form-input-file" onchange="previewImage(event)" />
+        <label for="r-image" class="image-upload-label">
+          <span id="upload-label-text">📷 Upload a photo of your recipe</span>
+        </label>
+        <img id="image-preview" class="image-preview" style="display:none" />
+      </div>
       <input type="text" id="r-time" placeholder="Total time (e.g. 45 min)" class="form-input" />
       <select id="r-difficulty" class="form-input">
         <option value="Beginner">Beginner</option>

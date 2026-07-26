@@ -284,8 +284,9 @@ function showAddRecipe() {
   }
   stepCount = 0;
   document.getElementById("steps-container").innerHTML = "";
-  document.getElementById("r-name").value = "";
-  document.getElementById("r-emoji").value = "";
+  document.getElementById("r-name").value = "";document.getElementById("r-image").value = "";
+  document.getElementById("image-preview").style.display = "none";
+  document.getElementById("upload-label-text").textContent = "📷 Upload a photo of your recipe";
   document.getElementById("r-time").value = "";
   document.getElementById("r-description").value = "";
   document.getElementById("save-status").textContent = "";
@@ -327,14 +328,14 @@ async function submitRecipe() {
   }
 
   const name = document.getElementById("r-name").value.trim();
-  const emoji = document.getElementById("r-emoji").value.trim();
+  const imageFile = document.getElementById("r-image").files[0];
   const time = document.getElementById("r-time").value.trim();
   const difficulty = document.getElementById("r-difficulty").value;
   const description = document.getElementById("r-description").value.trim();
   const statusEl = document.getElementById("save-status");
 
-  if (!name || !emoji || !time) {
-    statusEl.textContent = "Please fill in the recipe name, emoji, and time.";
+  if (!name || !time) {
+    statusEl.textContent = "Please fill in the recipe name and time.";
     statusEl.style.color = "#c0392b";
     return;
   }
@@ -378,8 +379,12 @@ async function submitRecipe() {
 
   try {
     statusEl.textContent = "Saving...";
-    statusEl.style.color = "var(--pink-dark)";
-    await saveRecipe({ name, emoji, time, difficulty, description, steps }, currentUser.uid);
+    statusEl.style.color = "var(--pink-dark)";let imageUrl = null;
+  if (imageFile) {
+    statusEl.textContent = "Uploading image...";
+    imageUrl = await uploadImageToCloudinary(imageFile);
+  }
+  await saveRecipe({ name, emoji: "🍽️", image: imageUrl, time, difficulty, description, steps }, currentUser.uid);
     statusEl.textContent = "✅ Recipe saved!";
     statusEl.style.color = "var(--sage)";
     setTimeout(() => goHome(), 1500);
@@ -453,6 +458,31 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
+// ─── Image Upload ─────────────────────────────────────────────────────────────
+function previewImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById("image-preview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+  document.getElementById("upload-label-text").textContent = "📷 " + file.name;
+}
+
+async function uploadImageToCloudinary(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "bake-w-me");
+
+  const response = await fetch("https://api.cloudinary.com/v1_1/qtuckntq/image/upload", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await response.json();
+  return data.secure_url;
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 renderHomeScreen();
 
@@ -472,3 +502,4 @@ window.removeStep = removeStep;
 window.submitRecipe = submitRecipe;
 window.toggleChat = toggleChat;
 window.sendMessage = sendMessage;
+window.previewImage = previewImage;
