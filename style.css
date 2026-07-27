@@ -44,10 +44,11 @@ body {
   justify-content: space-between;
   padding: 18px 32px;
   background: var(--pink-hero);
+  opacity: 0.75;
 }
 
 .nav-logo {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Laila', serif;
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-light);
@@ -73,7 +74,8 @@ body {
 
 /* ─── Hero ─────────────────────────────────────────────────────────────────── */
 .hero {
-  background: var(--pink-hero);
+  background: white;
+  background-image: url(/img/pink\ bg\ 1.png);
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: center;
